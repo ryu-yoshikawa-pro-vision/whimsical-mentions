@@ -22,6 +22,7 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
   const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const quillRef = useRef<ReactQuill>(null);
   const mentionListRef = useRef<HTMLDivElement>(null);
 
@@ -32,32 +33,6 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
   const handleChange = useCallback((content: string) => {
     onChange(content);
   }, [onChange]);
-
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return;
-
-    if (event.key === '@') {
-      const selection = quill.getSelection();
-      if (!selection) return;
-
-      const bounds = quill.getBounds(selection.index);
-      setCursorPosition({
-        top: bounds.top + bounds.height,
-        left: bounds.left,
-      });
-      setShowMentions(true);
-      setMentionFilter('');
-    } else if (showMentions) {
-      if (event.key === 'Escape') {
-        setShowMentions(false);
-      } else if (event.key === 'Backspace' && mentionFilter === '') {
-        setShowMentions(false);
-      } else {
-        setMentionFilter(prev => prev + event.key);
-      }
-    }
-  }, [showMentions]);
 
   const insertMention = useCallback((user: User) => {
     const quill = quillRef.current?.getEditor();
@@ -78,14 +53,84 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
 
     setShowMentions(false);
     setMentionFilter('');
+    setSelectedIndex(0);
   }, [mentionFilter]);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    if (event.key === '@') {
+      const selection = quill.getSelection();
+      if (!selection) return;
+
+      const bounds = quill.getBounds(selection.index);
+      setCursorPosition({
+        top: bounds.top + bounds.height,
+        left: bounds.left,
+      });
+      setShowMentions(true);
+      setMentionFilter('');
+      setSelectedIndex(0);
+    } else if (showMentions) {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          setSelectedIndex(prev => 
+            prev < filteredUsers.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setSelectedIndex(prev => 
+            prev > 0 ? prev - 1 : prev
+          );
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (filteredUsers[selectedIndex]) {
+            insertMention(filteredUsers[selectedIndex]);
+          }
+          break;
+        case 'Escape':
+          setShowMentions(false);
+          setSelectedIndex(0);
+          break;
+        case 'Backspace':
+          if (mentionFilter === '') {
+            setShowMentions(false);
+            setSelectedIndex(0);
+          } else {
+            setMentionFilter(prev => prev.slice(0, -1));
+          }
+          break;
+        default:
+          if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+            setMentionFilter(prev => prev + event.key);
+          }
+      }
+    }
+  }, [showMentions, filteredUsers, selectedIndex, insertMention]);
+
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (
+      mentionListRef.current && 
+      !mentionListRef.current.contains(event.target as Node) &&
+      !quillRef.current?.editor?.root.contains(event.target as Node)
+    ) {
+      setShowMentions(false);
+      setSelectedIndex(0);
+    }
+  }, []);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [handleKeyDown]);
+  }, [handleKeyDown, handleClickOutside]);
 
   return (
     <div className="relative">
@@ -108,10 +153,12 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
         >
           {filteredUsers.length > 0 ? (
             <ul className="py-2">
-              {filteredUsers.map(user => (
+              {filteredUsers.map((user, index) => (
                 <li
                   key={user.id}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  className={`px-4 py-2 cursor-pointer ${
+                    index === selectedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
+                  }`}
                   onClick={() => insertMention(user)}
                 >
                   {user.name}
