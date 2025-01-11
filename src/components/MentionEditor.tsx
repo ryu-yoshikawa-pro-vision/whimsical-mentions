@@ -23,6 +23,7 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
   const [mentionFilter, setMentionFilter] = useState('');
   const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [currentMentions, setCurrentMentions] = useState<User[]>([]);
   const quillRef = useRef<ReactQuill>(null);
   const mentionListRef = useRef<HTMLDivElement>(null);
 
@@ -31,6 +32,16 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
   );
 
   const handleChange = useCallback((content: string) => {
+    // Extract mentions from content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const mentionElements = tempDiv.querySelectorAll('[data-mention="true"]');
+    const mentionIds = Array.from(mentionElements).map(el => el.getAttribute('data-user-id'));
+    
+    // Update current mentions
+    const newMentions = DUMMY_USERS.filter(user => mentionIds.includes(user.id));
+    setCurrentMentions(newMentions);
+    
     onChange(content);
   }, [onChange]);
 
@@ -44,12 +55,16 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
     // Delete the '@' character and any filter text
     quill.deleteText(selection.index - mentionFilter.length - 1, mentionFilter.length + 1);
 
-    // Insert the mention
-    quill.insertText(selection.index - mentionFilter.length - 1, `@${user.name} `, {
-      mention: true,
-      color: '#2563eb',
-      bold: true,
+    // Insert the mention with normal weight and data attributes
+    quill.insertText(selection.index - mentionFilter.length - 1, `@${user.name}`, {
+      'mention': true,
+      'color': '#2563eb',
+      'data-mention': 'true',
+      'data-user-id': user.id
     });
+    
+    // Add a space after the mention
+    quill.insertText(selection.index - mentionFilter.length - 1 + `@${user.name}`.length, ' ');
 
     setShowMentions(false);
     setMentionFilter('');
@@ -133,41 +148,56 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
   }, [handleKeyDown, handleClickOutside]);
 
   return (
-    <div className="relative">
-      <ReactQuill
-        ref={quillRef}
-        value={value}
-        onChange={handleChange}
-        theme="snow"
-        className="bg-white rounded-lg"
-      />
-      
-      {showMentions && (
-        <div
-          ref={mentionListRef}
-          className="absolute z-10 bg-white rounded-lg shadow-lg border border-gray-200"
-          style={{
-            top: cursorPosition.top + 10,
-            left: cursorPosition.left,
-          }}
-        >
-          {filteredUsers.length > 0 ? (
-            <ul className="py-2">
-              {filteredUsers.map((user, index) => (
-                <li
-                  key={user.id}
-                  className={`px-4 py-2 cursor-pointer ${
-                    index === selectedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
-                  }`}
-                  onClick={() => insertMention(user)}
-                >
-                  {user.name}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="px-4 py-2 text-gray-500">No users found</div>
-          )}
+    <div className="space-y-4">
+      <div className="relative">
+        <ReactQuill
+          ref={quillRef}
+          value={value}
+          onChange={handleChange}
+          theme="snow"
+          className="bg-white rounded-lg"
+        />
+        
+        {showMentions && (
+          <div
+            ref={mentionListRef}
+            className="absolute z-10 bg-white rounded-lg shadow-lg border border-gray-200"
+            style={{
+              top: cursorPosition.top + 10,
+              left: cursorPosition.left,
+            }}
+          >
+            {filteredUsers.length > 0 ? (
+              <ul className="py-2">
+                {filteredUsers.map((user, index) => (
+                  <li
+                    key={user.id}
+                    className={`px-4 py-2 cursor-pointer ${
+                      index === selectedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
+                    }`}
+                    onClick={() => insertMention(user)}
+                  >
+                    {user.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="px-4 py-2 text-gray-500">No users found</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {currentMentions.length > 0 && (
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Current Mentions:</h3>
+          <ul className="space-y-1">
+            {currentMentions.map(user => (
+              <li key={user.id} className="text-sm text-gray-600">
+                ID: {user.id} - {user.name}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
