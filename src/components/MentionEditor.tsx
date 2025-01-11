@@ -45,7 +45,7 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
     quill.deleteText(selection.index - mentionFilter.length - 1, mentionFilter.length + 1);
 
     // Insert the mention
-    quill.insertText(selection.index - mentionFilter.length - 2, `@${user.name} `, {
+    quill.insertText(selection.index - mentionFilter.length - 1, `@${user.name} `, {
       mention: true,
       color: '#2563eb',
       bold: true,
