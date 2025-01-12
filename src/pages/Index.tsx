@@ -24,7 +24,7 @@ const Index = () => {
 
     // Get manually typed mentions
     const textContent = tempDiv.textContent || '';
-    const manualMentionRegex = /@([^\s]+(?:\s+[^\s]+)*)/g;
+    const manualMentionRegex = /@([^\s]+)/g;// /@([^\s]+(?:\s+[^\s]+)*)/g;
     const manualMentions = Array.from(textContent.matchAll(manualMentionRegex))
       .map(match => ({
         id: match[1], // Using the mentioned name as ID for manual mentions
