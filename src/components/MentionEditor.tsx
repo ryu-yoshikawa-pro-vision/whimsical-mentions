@@ -50,13 +50,12 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
     quill.deleteText(selection.index - mentionFilter.length - 1, mentionFilter.length + 1);
 
     // Insert the mention without bold styling
-    const mentionText = `@${user.name}`;
+    const mentionText = `${user.name}`;
     quill.insertText(
       selection.index - mentionFilter.length - 1,
       mentionText,
       {
         'mention': true,
-        'color': '#2563eb',
         'data-mention': 'true',
         'data-user-id': user.id,
         'bold': false
