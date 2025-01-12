@@ -21,7 +21,7 @@ export const MentionList = ({ users, selectedIndex, onSelect }: MentionListProps
           }`}
           onClick={() => onSelect(user)}
         >
-          {user.name}
+          {"@" + user.name}
         </li>
       ))}
     </ul>
