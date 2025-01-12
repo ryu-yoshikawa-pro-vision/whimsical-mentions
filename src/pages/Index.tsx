@@ -14,13 +14,31 @@ const Index = () => {
     // Parse mentions from content
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
+
+    // Get mentions from data attributes (selected from list)
     const mentionElements = tempDiv.querySelectorAll('[data-mention="true"]');
-    const mentions: User[] = Array.from(mentionElements).map(el => ({
+    const selectedMentions = Array.from(mentionElements).map(el => ({
       id: el.getAttribute('data-user-id') || '',
       name: el.textContent || ''
     }));
+
+    // Get manually typed mentions
+    const textContent = tempDiv.textContent || '';
+    const manualMentionRegex = /@([^\s]+)/g;
+    const manualMentions = Array.from(textContent.matchAll(manualMentionRegex))
+      .map(match => ({
+        id: match[1], // Using the mentioned name as ID for manual mentions
+        name: match[1]
+      }))
+      // Filter out mentions that are already included from data attributes
+      .filter(manual => !selectedMentions.some(selected => 
+        selected.name.toLowerCase() === manual.name.toLowerCase()
+      ));
+
+    // Combine both types of mentions
+    const allMentions = [...selectedMentions, ...manualMentions];
     
-    setSubmittedMentions(mentions);
+    setSubmittedMentions(allMentions);
   };
 
   return (
@@ -56,8 +74,8 @@ const Index = () => {
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">送信されたメンション:</h3>
                 <ul className="space-y-1">
-                  {submittedMentions.map(mention => (
-                    <li key={mention.id} className="text-sm text-gray-600">
+                  {submittedMentions.map((mention, index) => (
+                    <li key={`${mention.id}-${index}`} className="text-sm text-gray-600">
                       ID: {mention.id} - {mention.name}
                     </li>
                   ))}
