@@ -37,7 +37,7 @@ const Index = () => {
 
     // Combine both types of mentions
     const allMentions = [...selectedMentions, ...manualMentions];
-    
+    console.log(submittedMentions);
     setSubmittedMentions(allMentions);
   };
 
