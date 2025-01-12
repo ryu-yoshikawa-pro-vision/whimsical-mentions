@@ -55,16 +55,26 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
     // Delete the '@' character and any filter text
     quill.deleteText(selection.index - mentionFilter.length - 1, mentionFilter.length + 1);
 
-    // Insert the mention with normal weight and data attributes
-    quill.insertText(selection.index - mentionFilter.length - 1, `@${user.name}`, {
-      'mention': true,
-      'color': '#2563eb',
-      'data-mention': 'true',
-      'data-user-id': user.id
-    });
+    // Insert the mention without bold styling
+    const mentionText = `@${user.name}`;
+    quill.insertText(
+      selection.index - mentionFilter.length - 1,
+      mentionText,
+      {
+        'mention': true,
+        'color': '#2563eb',
+        'data-mention': 'true',
+        'data-user-id': user.id,
+        'bold': false  // Explicitly set bold to false
+      }
+    );
     
     // Add a space after the mention
-    quill.insertText(selection.index - mentionFilter.length - 1 + `@${user.name}`.length, ' ');
+    quill.insertText(
+      selection.index - mentionFilter.length - 1 + mentionText.length,
+      ' ',
+      { 'bold': false }  // Ensure the space isn't bold either
+    );
 
     setShowMentions(false);
     setMentionFilter('');
@@ -190,7 +200,7 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
 
       {currentMentions.length > 0 && (
         <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Current Mentions:</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">現在のメンション:</h3>
           <ul className="space-y-1">
             {currentMentions.map(user => (
               <li key={user.id} className="text-sm text-gray-600">
