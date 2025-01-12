@@ -19,26 +19,36 @@ const Index = () => {
     const mentionElements = tempDiv.querySelectorAll('[data-mention="true"]');
     const selectedMentions = Array.from(mentionElements).map(el => ({
       id: el.getAttribute('data-user-id') || '',
-      name: el.textContent || ''
+      name: el.textContent?.trim() || ''
     }));
 
     // Get manually typed mentions
     const textContent = tempDiv.textContent || '';
-    const manualMentionRegex = /@([^\s]+)/g;
+    const manualMentionRegex = /@([^\s]+(?:\s+[^\s]+)*)/g;
     const manualMentions = Array.from(textContent.matchAll(manualMentionRegex))
       .map(match => ({
         id: match[1], // Using the mentioned name as ID for manual mentions
-        name: match[1]
+        name: match[1].trim()
       }))
       // Filter out mentions that are already included from data attributes
       .filter(manual => !selectedMentions.some(selected => 
         selected.name.toLowerCase() === manual.name.toLowerCase()
       ));
 
-    // Combine both types of mentions
+    // Combine both types of mentions and remove duplicates
     const allMentions = [...selectedMentions, ...manualMentions];
-    console.log(allMentions);
-    setSubmittedMentions(allMentions);
+    const uniqueMentions = allMentions.reduce((acc: User[], current) => {
+      const isDuplicate = acc.some(item => 
+        item.name.toLowerCase() === current.name.toLowerCase()
+      );
+      if (!isDuplicate) {
+        acc.push(current);
+      }
+      return acc;
+    }, []);
+
+    console.log(uniqueMentions);
+    setSubmittedMentions(uniqueMentions);
   };
 
   return (
