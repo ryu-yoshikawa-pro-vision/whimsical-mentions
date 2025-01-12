@@ -1,22 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-
-interface User {
-  id: string;
-  name: string;
-}
-
-interface MentionEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-}
+import { MentionList } from './MentionList';
+import { CurrentMentions } from './CurrentMentions';
+import { User } from './types';
 
 const DUMMY_USERS: User[] = [
   { id: '1', name: 'John Doe' },
   { id: '2', name: 'Jane Smith' },
   { id: '3', name: 'Bob Johnson' },
 ];
+
+interface MentionEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+}
 
 export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange }) => {
   const [showMentions, setShowMentions] = useState(false);
@@ -27,23 +25,19 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
   const quillRef = useRef<ReactQuill>(null);
   const mentionListRef = useRef<HTMLDivElement>(null);
 
-  const filteredUsers = DUMMY_USERS.filter(user =>
-    user.name.toLowerCase().includes(mentionFilter.toLowerCase())
-  );
-
-  const handleChange = useCallback((content: string) => {
-    // Extract mentions from content
+  const extractMentionsFromContent = useCallback((content: string) => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
     const mentionElements = tempDiv.querySelectorAll('[data-mention="true"]');
     const mentionIds = Array.from(mentionElements).map(el => el.getAttribute('data-user-id'));
-    
-    // Update current mentions
-    const newMentions = DUMMY_USERS.filter(user => mentionIds.includes(user.id));
-    setCurrentMentions(newMentions);
-    
+    return DUMMY_USERS.filter(user => mentionIds.includes(user.id));
+  }, []);
+
+  const handleChange = useCallback((content: string) => {
+    const mentions = extractMentionsFromContent(content);
+    setCurrentMentions(mentions);
     onChange(content);
-  }, [onChange]);
+  }, [onChange, extractMentionsFromContent]);
 
   const insertMention = useCallback((user: User) => {
     const quill = quillRef.current?.getEditor();
@@ -65,7 +59,7 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
         'color': '#2563eb',
         'data-mention': 'true',
         'data-user-id': user.id,
-        'bold': false  // Explicitly set bold to false
+        'bold': false
       }
     );
     
@@ -73,13 +67,17 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
     quill.insertText(
       selection.index - mentionFilter.length - 1 + mentionText.length,
       ' ',
-      { 'bold': false }  // Ensure the space isn't bold either
+      { 'bold': false }
     );
 
     setShowMentions(false);
     setMentionFilter('');
     setSelectedIndex(0);
   }, [mentionFilter]);
+
+  const filteredUsers = DUMMY_USERS.filter(user =>
+    user.name.toLowerCase().includes(mentionFilter.toLowerCase())
+  );
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const quill = quillRef.current?.getEditor();
@@ -177,39 +175,16 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
               left: cursorPosition.left,
             }}
           >
-            {filteredUsers.length > 0 ? (
-              <ul className="py-2">
-                {filteredUsers.map((user, index) => (
-                  <li
-                    key={user.id}
-                    className={`px-4 py-2 cursor-pointer ${
-                      index === selectedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
-                    }`}
-                    onClick={() => insertMention(user)}
-                  >
-                    {user.name}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="px-4 py-2 text-gray-500">No users found</div>
-            )}
+            <MentionList
+              users={filteredUsers}
+              selectedIndex={selectedIndex}
+              onSelect={insertMention}
+            />
           </div>
         )}
       </div>
 
-      {currentMentions.length > 0 && (
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">現在のメンション:</h3>
-          <ul className="space-y-1">
-            {currentMentions.map(user => (
-              <li key={user.id} className="text-sm text-gray-600">
-                ID: {user.id} - {user.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <CurrentMentions mentions={currentMentions} />
     </div>
   );
 };
