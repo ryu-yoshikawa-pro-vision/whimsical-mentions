@@ -41,6 +41,7 @@ export const MentionEditor: React.FC<MentionEditorProps> = ({ value, onChange })
 
   const insertMention = useCallback((user: User) => {
     const quill = quillRef.current?.getEditor();
+    console.log({quill})
     if (!quill) return;
 
     const selection = quill.getSelection();
